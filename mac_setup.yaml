@@ -7,11 +7,19 @@
     - config.yml
 
   tasks:
-    - name: Install Homebrew
+    - name: Ensure Homebrew is installed
+      stat: path=/opt/homebrew/bin/brew
+      register: homebrew_check
+
+    - name: Install Homebrew if not present
       shell: |
         /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-      args:
-        creates: /usr/local/bin/brew
+      when: not homebrew_check.stat.exists
+
+    - name: Update Homebrew and upgrade all packages
+      community.general.homebrew:
+        update_homebrew: yes
+        upgrade_all: yes
 
     - name: Install Homebrew packages
       community.general.homebrew:
@@ -32,6 +40,7 @@
       community.general.homebrew_cask:
         name: "{{ item }}"
         state: present
+        greedy: yes
       loop:
         - visual-studio-code
         - docker
@@ -47,72 +56,96 @@
         - warp
 
     - name: Install Laravel Herd
-      get_url:
-        url: "https://herd.laravel.com/download/latest/mac"
-        dest: /tmp/herd.dmg
-    - name: Mount Laravel Herd DMG
-      command: hdiutil attach /tmp/herd.dmg
-    - name: Install Laravel Herd
-      command: cp -R "/Volumes/Laravel Herd/Laravel Herd.app" /Applications/
-    - name: Unmount Laravel Herd DMG
-      command: hdiutil detach "/Volumes/Laravel Herd"
+      block:
+        - name: Download Laravel Herd
+          get_url:
+            url: "https://herd.laravel.com/download/latest/mac"
+            dest: /tmp/herd.dmg
+        - name: Mount Laravel Herd DMG
+          command: hdiutil attach /tmp/herd.dmg
+        - name: Install Laravel Herd
+          command: cp -R "/Volumes/Laravel Herd/Laravel Herd.app" /Applications/
+        - name: Unmount Laravel Herd DMG
+          command: hdiutil detach "/Volumes/Laravel Herd"
+      when: "'Laravel Herd.app' not in lookup('pipe', 'ls /Applications')"
 
     - name: Install DevToys
-      get_url:
-        url: "https://github.com/DevToys-app/DevToysMac/releases/latest/download/DevToys.zip"
-        dest: /tmp/DevToys.zip
-    - name: Unzip DevToys
-      unarchive:
-        src: /tmp/DevToys.zip
-        dest: /Applications/
+      block:
+        - name: Download DevToys
+          get_url:
+            url: "https://github.com/DevToys-app/DevToysMac/releases/latest/download/DevToys.zip"
+            dest: /tmp/DevToys.zip
+        - name: Unzip DevToys
+          unarchive:
+            src: /tmp/DevToys.zip
+            dest: /Applications/
+      when: "'DevToys.app' not in lookup('pipe', 'ls /Applications')"
 
     - name: Install Notion
-      get_url:
-        url: "https://www.notion.so/desktop/mac/download"
-        dest: /tmp/Notion.dmg
-    - name: Mount Notion DMG
-      command: hdiutil attach /tmp/Notion.dmg
-    - name: Install Notion
-      command: cp -R "/Volumes/Notion/Notion.app" /Applications/
-    - name: Unmount Notion DMG
-      command: hdiutil detach "/Volumes/Notion"
+      block:
+        - name: Download Notion
+          get_url:
+            url: "https://www.notion.so/desktop/mac/download"
+            dest: /tmp/Notion.dmg
+        - name: Mount Notion DMG
+          command: hdiutil attach /tmp/Notion.dmg
+        - name: Install Notion
+          command: cp -R "/Volumes/Notion/Notion.app" /Applications/
+        - name: Unmount Notion DMG
+          command: hdiutil detach "/Volumes/Notion"
+      when: "'Notion.app' not in lookup('pipe', 'ls /Applications')"
 
     - name: Install Arc browser
-      get_url:
-        url: "https://releases.arc.net/release/Arc.zip"
-        dest: /tmp/Arc.zip
-    - name: Unzip Arc
-      unarchive:
-        src: /tmp/Arc.zip
-        dest: /Applications/
+      block:
+        - name: Download Arc
+          get_url:
+            url: "https://releases.arc.net/release/Arc.zip"
+            dest: /tmp/Arc.zip
+        - name: Unzip Arc
+          unarchive:
+            src: /tmp/Arc.zip
+            dest: /Applications/
+      when: "'Arc.app' not in lookup('pipe', 'ls /Applications')"
 
     - name: Install JetBrains Toolbox
-      get_url:
-        url: "https://download.jetbrains.com/toolbox/jetbrains-toolbox-1.28.1.15219.dmg"
-        dest: /tmp/jetbrains-toolbox.dmg
-    - name: Mount JetBrains Toolbox DMG
-      command: hdiutil attach /tmp/jetbrains-toolbox.dmg
-    - name: Install JetBrains Toolbox
-      command: cp -R "/Volumes/JetBrains Toolbox/JetBrains Toolbox.app" /Applications/
-    - name: Unmount JetBrains Toolbox DMG
-      command: hdiutil detach "/Volumes/JetBrains Toolbox"
+      block:
+        - name: Download JetBrains Toolbox
+          get_url:
+            url: "https://download.jetbrains.com/toolbox/jetbrains-toolbox-1.28.1.15219.dmg"
+            dest: /tmp/jetbrains-toolbox.dmg
+        - name: Mount JetBrains Toolbox DMG
+          command: hdiutil attach /tmp/jetbrains-toolbox.dmg
+        - name: Install JetBrains Toolbox
+          command: cp -R "/Volumes/JetBrains Toolbox/JetBrains Toolbox.app" /Applications/
+        - name: Unmount JetBrains Toolbox DMG
+          command: hdiutil detach "/Volumes/JetBrains Toolbox"
+      when: "'JetBrains Toolbox.app' not in lookup('pipe', 'ls /Applications')"
 
-    - name: Install Oh My Zsh
+    - name: Check if Oh My Zsh is installed
+      stat: path=~/.oh-my-zsh
+      register: oh_my_zsh
+
+    - name: Install Oh My Zsh if not present
       shell: |
         sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended
-      args:
-        creates: ~/.oh-my-zsh
+      when: not oh_my_zsh.stat.exists
 
-    - name: Install Powerlevel10k
+    - name: Check if Powerlevel10k is installed
+      stat: path=~/powerlevel10k
+      register: powerlevel10k
+
+    - name: Install Powerlevel10k if not present
       git:
         repo: 'https://github.com/romkatv/powerlevel10k.git'
         dest: '~/powerlevel10k'
         depth: 1
+      when: not powerlevel10k.stat.exists
 
     - name: Configure Powerlevel10k in .zshrc
       lineinfile:
         path: ~/.zshrc
         line: 'source ~/powerlevel10k/powerlevel10k.zsh-theme'
+        create: yes
 
     - name: Copy aliases file
       copy:
@@ -123,6 +156,7 @@
       lineinfile:
         path: ~/.zshrc
         line: 'source ~/.zsh_aliases'
+        create: yes
 
     - name: Configure Git
       git_config:
@@ -133,21 +167,28 @@
         - { name: 'user.name', value: '{{ git_user_name }}' }
         - { name: 'user.email', value: '{{ git_user_email }}' }
 
+    - name: Check if GitHub SSH key exists
+      stat: path=~/.ssh/github_id_rsa
+      register: github_ssh_key
+
     - name: Generate SSH key for GitHub
       openssh_keypair:
         path: ~/.ssh/github_id_rsa
         type: rsa
         size: 4096
         comment: "{{ git_user_email }}"
+      when: not github_ssh_key.stat.exists
 
     - name: Display GitHub SSH public key
       command: cat ~/.ssh/github_id_rsa.pub
-      register: github_ssh_key
+      register: github_ssh_key_content
+      when: not github_ssh_key.stat.exists
 
     - name: Install global npm packages
       npm:
         name: "{{ item }}"
         global: yes
+        state: latest
       loop:
         - typescript
         - react
@@ -162,8 +203,9 @@
       debug:
         msg: 
           - "Your GitHub SSH public key is:"
-          - "{{ github_ssh_key.stdout }}"
-          - "Please add this key to your GitHub account settings."
+          - "{{ github_ssh_key_content.stdout }}"
+          - "Please add this key to your GitHub account settings if you haven't already."
+      when: not github_ssh_key.stat.exists
 
     - name: Clean up
       file:
