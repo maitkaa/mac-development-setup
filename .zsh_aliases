@@ -1,0 +1,8 @@
+# ~/.zsh_aliases
+alias mkcd='function _mkcd() { mkdir -p "$1" && cd "$1" }; _mkcd'
+alias pstorm='open -a "PhpStorm" .'
+alias code='open -a "Visual Studio Code" .'
+alias gf='git fetch'
+alias dcup='docker-compose up -d'
+alias dcd='docker-compose down'
+alias dcl='docker-compose logs -f'

@@ -1,0 +1,177 @@
+---
+- name: Set up MacBook for development
+  hosts: localhost
+  connection: local
+  become: false
+  vars_files:
+    - config.yml
+
+  tasks:
+    - name: Install Homebrew
+      shell: |
+        /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+      args:
+        creates: /usr/local/bin/brew
+
+    - name: Install Homebrew packages
+      community.general.homebrew:
+        name: "{{ item }}"
+        state: present
+      loop:
+        - git
+        - wget
+        - curl
+        - php
+        - composer
+        - nvm
+        - node
+        - typescript
+        - yarn
+
+    - name: Install Cask applications
+      community.general.homebrew_cask:
+        name: "{{ item }}"
+        state: present
+      loop:
+        - visual-studio-code
+        - docker
+        - phpstorm
+        - iterm2
+        - brave-browser
+        - firefox-developer-edition
+        - figma
+        - obs
+        - insomnia
+        - lens
+        - spotify
+        - warp
+
+    - name: Install Laravel Herd
+      get_url:
+        url: "https://herd.laravel.com/download/latest/mac"
+        dest: /tmp/herd.dmg
+    - name: Mount Laravel Herd DMG
+      command: hdiutil attach /tmp/herd.dmg
+    - name: Install Laravel Herd
+      command: cp -R "/Volumes/Laravel Herd/Laravel Herd.app" /Applications/
+    - name: Unmount Laravel Herd DMG
+      command: hdiutil detach "/Volumes/Laravel Herd"
+
+    - name: Install DevToys
+      get_url:
+        url: "https://github.com/DevToys-app/DevToysMac/releases/latest/download/DevToys.zip"
+        dest: /tmp/DevToys.zip
+    - name: Unzip DevToys
+      unarchive:
+        src: /tmp/DevToys.zip
+        dest: /Applications/
+
+    - name: Install Notion
+      get_url:
+        url: "https://www.notion.so/desktop/mac/download"
+        dest: /tmp/Notion.dmg
+    - name: Mount Notion DMG
+      command: hdiutil attach /tmp/Notion.dmg
+    - name: Install Notion
+      command: cp -R "/Volumes/Notion/Notion.app" /Applications/
+    - name: Unmount Notion DMG
+      command: hdiutil detach "/Volumes/Notion"
+
+    - name: Install Arc browser
+      get_url:
+        url: "https://releases.arc.net/release/Arc.zip"
+        dest: /tmp/Arc.zip
+    - name: Unzip Arc
+      unarchive:
+        src: /tmp/Arc.zip
+        dest: /Applications/
+
+    - name: Install JetBrains Toolbox
+      get_url:
+        url: "https://download.jetbrains.com/toolbox/jetbrains-toolbox-1.28.1.15219.dmg"
+        dest: /tmp/jetbrains-toolbox.dmg
+    - name: Mount JetBrains Toolbox DMG
+      command: hdiutil attach /tmp/jetbrains-toolbox.dmg
+    - name: Install JetBrains Toolbox
+      command: cp -R "/Volumes/JetBrains Toolbox/JetBrains Toolbox.app" /Applications/
+    - name: Unmount JetBrains Toolbox DMG
+      command: hdiutil detach "/Volumes/JetBrains Toolbox"
+
+    - name: Install Oh My Zsh
+      shell: |
+        sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended
+      args:
+        creates: ~/.oh-my-zsh
+
+    - name: Install Powerlevel10k
+      git:
+        repo: 'https://github.com/romkatv/powerlevel10k.git'
+        dest: '~/powerlevel10k'
+        depth: 1
+
+    - name: Configure Powerlevel10k in .zshrc
+      lineinfile:
+        path: ~/.zshrc
+        line: 'source ~/powerlevel10k/powerlevel10k.zsh-theme'
+
+    - name: Copy aliases file
+      copy:
+        src: zsh_aliases
+        dest: ~/.zsh_aliases
+
+    - name: Source aliases in .zshrc
+      lineinfile:
+        path: ~/.zshrc
+        line: 'source ~/.zsh_aliases'
+
+    - name: Configure Git
+      git_config:
+        name: "{{ item.name }}"
+        scope: global
+        value: "{{ item.value }}"
+      loop:
+        - { name: 'user.name', value: '{{ git_user_name }}' }
+        - { name: 'user.email', value: '{{ git_user_email }}' }
+
+    - name: Generate SSH key for GitHub
+      openssh_keypair:
+        path: ~/.ssh/github_id_rsa
+        type: rsa
+        size: 4096
+        comment: "{{ git_user_email }}"
+
+    - name: Display GitHub SSH public key
+      command: cat ~/.ssh/github_id_rsa.pub
+      register: github_ssh_key
+
+    - name: Install global npm packages
+      npm:
+        name: "{{ item }}"
+        global: yes
+      loop:
+        - typescript
+        - react
+        - create-react-app
+        - "@remix-run/dev"
+
+    - name: Remind about manual installations
+      debug:
+        msg: "Please manually install the following applications: {{ manual_applications | map(attribute='name') | join(', ') }}"
+
+    - name: Display GitHub SSH key
+      debug:
+        msg: 
+          - "Your GitHub SSH public key is:"
+          - "{{ github_ssh_key.stdout }}"
+          - "Please add this key to your GitHub account settings."
+
+    - name: Clean up
+      file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - /tmp/herd.dmg
+        - /tmp/DevToys.zip
+        - /tmp/Notion.dmg
+        - /tmp/Arc.zip
+        - /tmp/jetbrains-toolbox.dmg
