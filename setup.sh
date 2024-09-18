@@ -40,13 +40,13 @@ else
     echo "Ansible already installed."
 fi
 
-# Clone your Ansible playbook repository (or update if it exists)
-if [ ! -d "mac-development-setup" ]; then
-    git clone https://github.com/maitkaa/mac-development-setup.git
-    cd mac-development-setup
-else
-    cd mac-development-setup
+# Update the repository if it's a git repository
+if [ -d .git ] && [ -f mac_setup.yaml ]; then
+    echo "Updating the setup repository..."
     git pull
+else
+    echo "This doesn't appear to be the setup repository or it's not a git repository."
+    echo "Please ensure you're up-to-date"
 fi
 
 # Copy the example config file if it doesn't exist
@@ -65,7 +65,7 @@ ansible-playbook mac_setup.yaml
 echo "Setup complete!"
 echo "Please manually install the following applications if not already installed:"
 echo "1. DaVinci Resolve: https://www.blackmagicdesign.com/products/davinciresolve/"
-echo "2. Microsoft Office: https://www.office.com/"
+echo "2. Microsoft Office: https://go.microsoft.com/fwlink/?linkid=2246798"
 echo "3. Fusion 360: https://www.autodesk.com/products/fusion-360/overview"
 echo ""
 echo "Don't forget to add your GitHub SSH key to your GitHub account settings if you haven't already!"
