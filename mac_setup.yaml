@@ -59,7 +59,7 @@
       block:
         - name: Download Laravel Herd
           get_url:
-            url: "https://herd.laravel.com/download/latest/mac"
+            url: "https://herd.laravel.com/download"
             dest: /tmp/herd.dmg
         - name: Mount Laravel Herd DMG
           command: hdiutil attach /tmp/herd.dmg
@@ -73,7 +73,7 @@
       block:
         - name: Download DevToys
           get_url:
-            url: "https://github.com/DevToys-app/DevToysMac/releases/latest/download/DevToys.zip"
+            url: "https://github.com/DevToys-app/DevToysMac/releases/latest/download/DevToys.app.zip"
             dest: /tmp/DevToys.zip
         - name: Unzip DevToys
           unarchive:
@@ -99,19 +99,21 @@
       block:
         - name: Download Arc
           get_url:
-            url: "https://releases.arc.net/release/Arc.zip"
-            dest: /tmp/Arc.zip
-        - name: Unzip Arc
-          unarchive:
-            src: /tmp/Arc.zip
-            dest: /Applications/
+            url: "https://releases.arc.net/release/Arc-latest.dmg"
+            dest: /tmp/Arc.dmg
+        - name: Mount ARC DMG
+          command: hdiutil attach /tmp/Arc.dmg
+        - name: Install Arc
+          command: cp -R "/Volumes/Arc/Arc.app" /Applications/
+        - name: Unmount Arc DMG
+          command: hdiutil detach "/Volumes/Arc"
       when: "'Arc.app' not in lookup('pipe', 'ls /Applications')"
 
     - name: Install JetBrains Toolbox
       block:
         - name: Download JetBrains Toolbox
           get_url:
-            url: "https://download.jetbrains.com/toolbox/jetbrains-toolbox-1.28.1.15219.dmg"
+            url: "https://www.jetbrains.com/toolbox-app/download/download-thanks.html?platform=macM1"
             dest: /tmp/jetbrains-toolbox.dmg
         - name: Mount JetBrains Toolbox DMG
           command: hdiutil attach /tmp/jetbrains-toolbox.dmg
@@ -215,5 +217,5 @@
         - /tmp/herd.dmg
         - /tmp/DevToys.zip
         - /tmp/Notion.dmg
-        - /tmp/Arc.zip
+        - /tmp/Arc.dmg
         - /tmp/jetbrains-toolbox.dmg
